@@ -3,49 +3,45 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Contact;
-use App\Item;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
+use App\User;
+use App\Company;
 use App\Payment;
 use App\Invoice;
-use App\Opportunity;
 use DB;
 
-class DashboardController extends Controller
+class AdminController extends Controller
 {
     public function index()
     {
     	$cards = [
     		[
-    			'title' => 'All Contacts',
+    			'title' => 'All Users',
     			'type' => 'value',
-    			'value' => Contact::count()
+    			'value' => User::count()
     		],
     		[
-    			'title' => 'All Items',
+    			'title' => 'All Companies',
     			'type' => 'value',
-    			'value' => Item::count()
+    			'value' => Company::count()
     		],
     		[
-    			'title' => 'Un Paid Invoices',
+    			'title' => 'Unpaid Invoices',
     			'type' => 'value',
     			'value' => Invoice::where('status', 'sent')->count()
     		],
+            [
+                'title' => 'Employees',
+                'type' => 'value',
+                'value' => User::has('companies')->count()
+            ],
     		[
-    			'title' => 'New Opportunities',
+    			'title' => 'Admins',
     			'type' => 'value',
-    			'value' => Opportunity::where('status', 'new')->count()
-    		],
-    		[
-    			'title' => 'Opportunities Lost',
-    			'type' => 'chart',
-    			'color' => '#6be6c1',
-    			'value' => $this->getChart(Opportunity::where('status', 'lost'), 'created_at')
-    		],
-    		[
-    			'title' => 'Opportunities Won',
-    			'type' => 'chart',
-    			'color' => '#96dee8',
-    			'value' => $this->getChart(Opportunity::where('status', 'won'), 'created_at')
+    			'value' => User::whereHas('companies', function (Builder $query) {
+                    $query->where('admin', '=', 1);
+                })->count()
     		],
     		[
     			'title' => 'Paid Invoices',
@@ -72,7 +68,8 @@ class DashboardController extends Controller
 
     public function getChart($model, $column)
     {
-    	$valueFormat = DB::raw("DATE_FORMAT(".$column.", '%d') as value");
+    	// $valueFormat = DB::raw("DATE_FORMAT(".$column.", '%d') as value");
+    	$valueFormat = DB::raw("strftime( '%d', ".$column.") as value");
     	$start = now()->startOfMonth();
     	$end = now()->endOfMonth();
 
